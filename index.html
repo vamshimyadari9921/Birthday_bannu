@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happy Birthday Darshu!</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: #0f172a;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Music Control Button */
+    .audio-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+      padding: 10px 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .audio-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Polaroid Layout */
+    .reel-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .polaroid-card {
+      background-color: #ffffff;
+      padding: 16px 16px 28px 16px;
+      border-radius: 8px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      transition: transform 0.3s ease;
+    }
+
+    .image-wrapper {
+      width: 280px;
+      height: 340px;
+      background-color: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .image-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-btn {
+      padding: 8px 18px;
+      border-radius: 6px;
+      border: none;
+      background-color: #3b82f6;
+      color: #ffffff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .counter {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+
+    /* Birthday Finale Card */
+    .finale-container {
+      display: none;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      padding: 40px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      max-width: 400px;
+      margin: 20px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+    }
+
+    .finale-title {
+      font-size: 30px;
+      color: #f43f5e;
+      margin-bottom: 12px;
+    }
+
+    .finale-message {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      margin-bottom: 24px;
+    }
+
+    .restart-btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      background-color: #10b981;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    /* Fireworks Canvas */
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Music -->
+  <audio id="bg-audio" loop>
+    <source src="public/audio/birthday-tune.mp3" type="audio/mpeg">
+  </audio>
+  <button class="audio-btn" id="audio-toggle" onclick="toggleAudio()">🎵 Play Music</button>
+
+  <!-- Fireworks Canvas -->
+  <canvas id="canvas"></canvas>
+
+  <!-- Photo Slideshow View -->
+  <div class="reel-container" id="reel-view">
+    <div class="polaroid-card">
+      <div class="image-wrapper">
+        <img id="slide-img" src="" alt="Memory Slide">
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="nav-btn" id="prev-btn" onclick="changeSlide(-1)">❮ Prev</button>
+      <span class="counter" id="counter">1 / 3</span>
+      <button class="nav-btn" id="next-btn" onclick="changeSlide(1)">Next ❯</button>
+    </div>
+  </div>
+
+  <!-- Birthday Wishes Finale View -->
+  <div class="finale-container" id="finale-view">
+    <h1 class="finale-title">Happy Birthday, Darshu! 🎉</h1>
+    <p class="finale-message">Here's to celebrating all the amazing moments and memories!</p>
+    <button class="restart-btn" onclick="restartReel()">Watch it again 🔄</button>
+  </div>
+
+  <script>
+    // 3 Placeholder Photos
+    const photos = [
+      'https://picsum.photos/id/1018/600/800',
+      'https://picsum.photos/id/1015/600/800',
+      'https://picsum.photos/id/1019/600/800'
+    ];
+
+    let currentIndex = 0;
+    let autoSlideTimer = null;
+    let isPlayingAudio = false;
+
+    const slideImg = document.getElementById('slide-img');
+    const counter = document.getElementById('counter');
+    const prevBtn = document.getElementById('prev-btn');
+    const reelView = document.getElementById('reel-view');
+    const finaleView = document.getElementById('finale-view');
+    const bgAudio = document.getElementById('bg-audio');
+    const audioBtn = document.getElementById('audio-toggle');
+    const canvas = document.getElementById('canvas');
+
+    function updateSlide() {
+      slideImg.src = photos[currentIndex];
+      counter.textContent = `${currentIndex + 1} / ${photos.length}`;
+      prevBtn.disabled = currentIndex === 0;
+    }
+
+    function changeSlide(direction) {
+      resetAutoTimer();
+      if (direction === 1) {
+        if (currentIndex < photos.length - 1) {
+          currentIndex++;
+          updateSlide();
+        } else {
+          showFinale();
+        }
+      } else if (direction === -1 && currentIndex > 0) {
+        currentIndex--;
+        updateSlide();
+      }
+    }
+
+    function startAutoTimer() {
+      autoSlideTimer = setInterval(() => {
+        if (currentIndex < photos.length - 1) {
+          currentIndex++;
+          updateSlide();
+        } else {
+          clearInterval(autoSlideTimer);
+          showFinale();
+        }
+      }, 4200);
+    }
+
+    function resetAutoTimer() {
+      clearInterval(autoSlideTimer);
+      startAutoTimer();
+    }
+
+    function showFinale() {
+      clearInterval(autoSlideTimer);
+      reelView.style.display = 'none';
+      finaleView.style.display = 'block';
+      canvas.style.display = 'block';
+      startFireworks();
+    }
+
+    function restartReel() {
+      currentIndex = 0;
+      finaleView.style.display = 'none';
+      canvas.style.display = 'none';
+      reelView.style.display = 'flex';
+      updateSlide();
+      startAutoTimer();
+    }
+
+    function toggleAudio() {
+      if (isPlayingAudio) {
+        bgAudio.pause();
+        audioBtn.textContent = '🎵 Play Music';
+      } else {
+        bgAudio.play().catch(() => {});
+        audioBtn.textContent = '🔊 Mute Music';
+      }
+      isPlayingAudio = !isPlayingAudio;
+    }
+
+    function startFireworks() {
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      let particles = [];
+      const colors = ['#ff4d6d', '#ffb3c1', '#ffd166', '#06d6a0', '#118ab2'];
+
+      setInterval(() => {
+        const x = Math.random() * canvas.width;
+        const y = (Math.random() * canvas.height) / 2;
+        for (let i = 0; i < 30; i++) {
+          particles.push({
+            x, y,
+            dx: (Math.random() - 0.5) * 6,
+            dy: (Math.random() - 0.5) * 6,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            alpha: 1
+          });
+        }
+      }, 600);
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach((p, index) => {
+          p.x += p.dx;
+          p.y += p.dy;
+          p.alpha -= 0.015;
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+          ctx.fill();
+          if (p.alpha <= 0) particles.splice(index, 1);
+        });
+        requestAnimationFrame(render);
+      }
+      render();
+    }
+
+    updateSlide();
+    startAutoTimer();
+  </script>
+</body>
+</html>
